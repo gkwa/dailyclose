@@ -1,0 +1,14 @@
+* dailyclose
+
+** summary
+
+This is a description of project dailyclose.
+
+** usage
+
+Example:
+#+begin_example
+make test
+./dailyclose --help
+./dailyclose --log-level=debug
+#+end_example
