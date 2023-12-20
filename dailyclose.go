@@ -2,13 +2,20 @@ package dailyclose
 
 import (
 	"flag"
+	"io"
 	"log/slog"
+	"os"
+	"path/filepath"
+	"strings"
+	"text/template"
 )
 
 type Options struct {
 	LogFormat string
 	LogLevel  string
 }
+
+const outputFileName = ".goreleaser.yaml"
 
 func Execute() int {
 	options := parseArgs()
@@ -41,10 +48,68 @@ func parseArgs() Options {
 }
 
 func run(options Options) error {
-	slog.Debug("test", "test", "Debug")
-	slog.Debug("test", "LogLevel", options.LogLevel)
-	slog.Info("test", "test", "Info")
-	slog.Error("test", "test", "Error")
+	filename := ".goreleaser.yaml"
+	_, err := os.Stat(filename)
+	if err == nil {
+		slog.Info("file exists, quitting early to prevent overwriting", "file", filename)
+		return nil
+	}
+
+	tmplPath := filepath.Join("templates", ".goreleaser.yaml")
+
+	// Read template from file
+	file, err := os.Open(tmplPath)
+	if err != nil {
+		slog.Error("Error opening template file:", "error", err)
+		return err
+	}
+	defer file.Close()
+
+	// Create a new template from the content read from the file
+	templateContent, err := io.ReadAll(file)
+	if err != nil {
+		slog.Error("Error reading template file:", "error", err)
+		return err
+	}
+
+	tmpl, err := template.New("script").Parse(string(templateContent))
+	if err != nil {
+		slog.Error("Error creating template:", "error", err)
+		return err
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	data := struct {
+		Files []string
+		Cwd   string
+	}{
+		Cwd: filepath.Base(cwd),
+	}
+
+	var scriptBuilder strings.Builder
+	err = tmpl.Execute(&scriptBuilder, data)
+	if err != nil {
+		slog.Error("Error executing template:", "error", err)
+		return err
+	}
+
+	file, err = os.Create(outputFileName)
+	if err != nil {
+		slog.Error("Error creating file:", "error", err)
+		return err
+	}
+	defer file.Close()
+
+	// Write the content to the file
+	_, err = file.WriteString(scriptBuilder.String())
+	if err != nil {
+		slog.Error("Error writing to file:", "error", err)
+		return err
+	}
 
 	return nil
 }
