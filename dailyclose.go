@@ -58,7 +58,6 @@ func run(options Options) error {
 		return nil
 	}
 
-	// Use the embedded template
 	tmpl, err := template.New("script").Parse(embeddedTemplate)
 	if err != nil {
 		slog.Error("Error creating template:", "error", err)
@@ -91,7 +90,6 @@ func run(options Options) error {
 	}
 	defer file.Close()
 
-	// Write the content to the file
 	_, err = file.WriteString(scriptBuilder.String())
 	if err != nil {
 		slog.Error("Error writing to file:", "error", err)
