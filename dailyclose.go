@@ -1,8 +1,8 @@
 package dailyclose
 
 import (
+	_ "embed"
 	"flag"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -14,6 +14,9 @@ type Options struct {
 	LogFormat string
 	LogLevel  string
 }
+
+//go:embed templates/.goreleaser.yaml
+var embeddedTemplate string
 
 const outputFileName = ".goreleaser.yaml"
 
@@ -55,24 +58,8 @@ func run(options Options) error {
 		return nil
 	}
 
-	tmplPath := filepath.Join("templates", ".goreleaser.yaml")
-
-	// Read template from file
-	file, err := os.Open(tmplPath)
-	if err != nil {
-		slog.Error("Error opening template file:", "error", err)
-		return err
-	}
-	defer file.Close()
-
-	// Create a new template from the content read from the file
-	templateContent, err := io.ReadAll(file)
-	if err != nil {
-		slog.Error("Error reading template file:", "error", err)
-		return err
-	}
-
-	tmpl, err := template.New("script").Parse(string(templateContent))
+	// Use the embedded template
+	tmpl, err := template.New("script").Parse(embeddedTemplate)
 	if err != nil {
 		slog.Error("Error creating template:", "error", err)
 		return err
@@ -97,7 +84,7 @@ func run(options Options) error {
 		return err
 	}
 
-	file, err = os.Create(outputFileName)
+	file, err := os.Create(outputFileName)
 	if err != nil {
 		slog.Error("Error creating file:", "error", err)
 		return err
